@@ -1,0 +1,27 @@
+description "djangoimager"
+
+start on (filesystem)
+stop on runlevel [016]
+
+respawn
+setuid nobody
+setgid nogroup
+chdir /home/ubuntu/django-imager/imagersite
+
+script
+ . /home/ubuntu/django-imager/bin/activate
+end script
+
+env DJANGO_SETTINGS_MODULE=imagersite.settings
+env DB_PASS='FranksRedHot'
+env DB_USER='rveeblefetzer'
+env DB_HOST='djangoimager.c4fhfsyf7opd.us-west-2.rds.amazonaws.com'
+env DB_PORT='5432'
+env DB_NAME='imager_db'
+env EMAIL_PASS= #PASSWORDGOESHERE
+env SERVER_EMAIL='rveeblefetzer@gmail.com'
+env DEFAULT_FROM_EMAIL='Build your photo gallery with Django Imager'
+env ALLOWED_HOSTS='ec2-35-162-41-52.us-west-2.compute.amazonaws.com 35.162.41.52 localhost'
+env DEBUG='False'
+env SECRET_KEY='coffeemug'
+exec /home/ubuntu/django-imager/bin/gunicorn -b 127.0.0.1:8000 -w 4 imagersite.wsgi:application

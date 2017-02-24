@@ -1,0 +1,9 @@
+127.0.0.1 ansible_connection=local
+
+[us-west-2]
+35.162.41.52 server_name=ec2-35-162-41-52.us-west-2.compute.amazonaws.com
+
+[us-west-2:vars]
+ansible_ssh_user=ubuntu
+ansible_ssh_private_key_file=~/.ssh/wsgi-demo.pem
+envname=/home/ubuntu/django-imager

@@ -1,0 +1,98 @@
+---
+- hosts: us-west-2
+  remote_user: ubuntu
+  vars:
+    env:
+      DB_PASS: "FranksRedHot"
+      DB_USER: "rveeblefetzer"
+      DB_HOST: "djangoimager.cv4yljawn9ox.us-west-2.rds.amazonaws.com"
+      DB_PORT: "5432"
+      DB_NAME: "imager_db"
+      SECRET_KEY: 'coffeemug'
+
+
+  become: yes
+  become_method: sudo
+  tasks:
+    - name: Update the Ubuntu machine with all the latest stuff
+      apt: update_cache=yes
+  
+    - name: Upgrade the Ubuntu machine with all the latest stuff
+      apt: upgrade=yes
+    
+    - name: Install Basic Unix-level Services
+      apt: name={{ item }} state=latest
+      with_items:
+        - nginx
+        - python3
+        - python3-pip
+        - python3.4-venv
+        - git
+        - gunicorn
+        - python-dev 
+        - libpq-dev
+        - libtiff5-dev
+        - libjpeg8-dev
+        - zlib1g-dev
+        - libfreetype6-dev
+        - liblcms2-dev
+        - libwebp-dev
+        - tcl8.6-dev
+        - tk8.6-dev
+        - python-tk
+
+
+    - name: Clone the Imager App to the Home Directory
+      git: clone=yes repo=https://github.com/iamrobinhood12345/django-imager.git dest=/home/ubuntu/django-imager version=restAPI
+
+    - name: Install venv
+      command: python3 -m venv {{ envname }}
+
+    - name: Install gunicorn to the virtualenv
+      pip: virtualenv={{ envname }} name=gunicorn
+
+    - name: Install django-imager to the virtualenv
+      pip: virtualenv={{ envname }} name=/home/ubuntu/django-imager/requirements.pip extra_args="-r"
+
+    - name: Register the old activate file
+      stat: path=/home/ubuntu/django-imager/bin/activate.old
+      register: default_stat_activate
+
+    - name: Rename old activate file
+      command: mv /home/ubuntu/django-imager/bin/activate /home/ubuntu/django-imager/bin/activate.old
+      when: not default_stat_activate.stat.exists
+
+    - name: Create a new activate file
+      template: src=./templates/activate dest=/home/ubuntu/django-imager/bin/activate
+
+    - name: Register the old default file
+      stat: path=/etc/nginx/sites-available/default.old
+      register: default_stat
+
+    - name: Rename old default file
+      command: mv /etc/nginx/sites-available/default /etc/nginx/sites-available/default.old
+      when: not default_stat.stat.exists
+
+    - name: Create a new default file
+      template: src=./templates/simple_nginx_config dest=/etc/nginx/sites-available/default
+    
+    - name: Change File Permissions
+      command: chmod 777 /home/ubuntu/django-imager/imagersite/imagersite/static
+
+    - name: Change File Permissions
+      command: chmod 777 /home/ubuntu/django-imager/imagersite/imagersite/static/images
+
+    - name: Change File Permissions
+      command: chmod 777 /home/ubuntu/django-imager/imagersite/MEDIA
+
+    - name: Change File Permissions
+      command: chmod 777 /home/ubuntu/django-imager/imagersite/MEDIA/images
+
+    - name: Restart nginx Services
+      service: name=nginx state=restarted
+
+    - name: Copy upstart script into /etc/init
+      template: src=./templates/upstart_config dest=/etc/init/djangoimager.conf
+
+    - name: Restart the djangoimager upstart job
+      service: name=djangoimager state=restarted
